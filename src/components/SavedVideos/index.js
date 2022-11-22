@@ -1,47 +1,70 @@
-import {HiFire} from 'react-icons/hi'
-import {SavedVideoContainer} from './styledComponents'
-import NxtWatchContext from '../../context/NxtWatchContext'
+import {CgPlayListAdd} from 'react-icons/cg'
+
 import Header from '../Header'
-import SideNavbar from '../SideNavbar'
-import SavedVideoCard from '../SavedVideoCard'
+import NavigationBar from '../NavigationBar'
+import ThemeAndVideoContext from '../../context/ThemeAndVideoContext'
+import TrendingVideoCard from '../TrendingVideoCard'
+
+import {
+  SavedContainer,
+  SavedTitleIconContainer,
+  SavedVideoTitle,
+  SavedVideoList,
+  SavedText,
+  NoSavedVideosView,
+  NoSavedVideosImage,
+  NoSavedVideosHeading,
+  NoSavedVideosNote,
+} from './styledComponents'
 
 const SavedVideos = () => (
-  <NxtWatchContext.Consumer>
+  <ThemeAndVideoContext.Consumer>
     {value => {
-      const {savedVideos, isDarkThemeEnabled} = value
+      const {isDarkTheme, savedVideos} = value
+      const bgColor = isDarkTheme ? '#0f0f0f' : '#f9f9f9'
+      const textColor = isDarkTheme ? '#f9f9f9' : '#231f20'
+      const headingColor = isDarkTheme ? '#f1f5f9' : '#1e293b'
+      const noteColor = isDarkTheme ? '#e2e8f0' : '#475569'
+
       return (
-        <SavedVideoContainer
-          bgColor={isDarkThemeEnabled ? '#0f0f0f' : ' #f9f9f9'}
-          data-testid="savedVideos"
-        >
+        <>
           <Header />
-          <SideNavbar />
-          {savedVideos.length === 0 ? (
-            <div>
-              <img
-                src="https://assets.ccbp.in/frontend/react-js/nxt-watch-no-saved-videos-img.png"
-                alt="no saved videos"
-              />
-              <h1>No saved videos found</h1>
-              <p>You can save your videos while watching them</p>
-            </div>
-          ) : (
-            <div>
-              <div data-testid="banner">
-                <HiFire />
-                <h1>Saved Videos</h1>
-              </div>
-              <ul>
+          <NavigationBar />
+          <SavedContainer data-testid="savedVideos" bgColor={bgColor}>
+            <SavedVideoTitle>
+              <SavedTitleIconContainer>
+                <CgPlayListAdd size={35} color="#ff0000" />
+              </SavedTitleIconContainer>
+              <SavedText color={textColor}>Saved Videos</SavedText>
+            </SavedVideoTitle>
+            {savedVideos.length > 0 ? (
+              <SavedVideoList>
                 {savedVideos.map(eachVideo => (
-                  <SavedVideoCard videoDetails={eachVideo} key={eachVideo.id} />
+                  <TrendingVideoCard
+                    key={eachVideo.id}
+                    videoDetails={eachVideo}
+                  />
                 ))}
-              </ul>
-            </div>
-          )}
-        </SavedVideoContainer>
+              </SavedVideoList>
+            ) : (
+              <NoSavedVideosView>
+                <NoSavedVideosImage
+                  src="https://assets.ccbp.in/frontend/react-js/nxt-watch-no-saved-videos-img.png"
+                  alt="no saved videos"
+                />
+                <NoSavedVideosHeading headingColor={headingColor}>
+                  No saved videos found
+                </NoSavedVideosHeading>
+                <NoSavedVideosNote noteColor={noteColor}>
+                  You can save your videos while watching them
+                </NoSavedVideosNote>
+              </NoSavedVideosView>
+            )}
+          </SavedContainer>
+        </>
       )
     }}
-  </NxtWatchContext.Consumer>
+  </ThemeAndVideoContext.Consumer>
 )
 
 export default SavedVideos

@@ -1,35 +1,43 @@
 import {Component} from 'react'
-import Loader from 'react-loader-spinner'
 import Cookies from 'js-cookie'
-import {BiSearchAlt2} from 'react-icons/bi'
-import {GrFormClose} from 'react-icons/gr'
+import Loader from 'react-loader-spinner'
+
+import {AiOutlineClose, AiOutlineSearch} from 'react-icons/ai'
+
 import Header from '../Header'
-import VideoCard from '../VideoCard'
-import SideNavbar from '../SideNavbar'
+import NavigationBar from '../NavigationBar'
+import ThemeAndVideoContext from '../../context/ThemeAndVideoContext'
+import HomeVideos from '../HomeVideos'
+import FailureView from '../FailureView'
+
 import {
-  BannerContainer,
-  LogoImage,
-  Paragraph,
-  GetStartButton,
-  InputElement,
-  SearchButton,
   HomeContainer,
+  BannerContainer,
+  BannerImage,
+  BannerText,
+  BannerButton,
+  BannerLeftPart,
+  BannerRightPart,
+  BannerCloseButton,
+  SearchContainer,
+  SearchInput,
+  SearchIconContainer,
+  LoaderContainer,
 } from './styledComponents'
 
-import NxtWatchContext from '../../context/NxtWatchContext'
-
 const apiStatusConstants = {
-  initial: 'Initial',
-  inProgress: 'In Progress',
-  failure: 'Failure',
-  success: 'Success',
+  initial: 'INITIAL',
+  success: 'SUCCESS',
+  failure: 'FAILURE',
+  inProgress: 'IN_PROGRESS',
 }
 
 class Home extends Component {
   state = {
+    homeVideos: [],
     searchInput: '',
-    videos: [],
     apiStatus: apiStatusConstants.initial,
+    bannerDisplay: 'flex',
     isBannerShow: true,
   }
 
@@ -38,31 +46,30 @@ class Home extends Component {
   }
 
   getVideos = async () => {
-    this.setState({apiStatus: apiStatusConstants.inProgress})
     const {searchInput} = this.state
+    this.setState({apiStatus: apiStatusConstants.inProgress})
     const jwtToken = Cookies.get('jwt_token')
-    const videoUrl = `https://apis.ccbp.in/videos/all?search=${searchInput}`
-
+    const url = `https://apis.ccbp.in/videos/all?search=${searchInput}`
     const options = {
-      method: 'GET',
       headers: {
         Authorization: `Bearer ${jwtToken}`,
       },
+      method: 'GET',
     }
-    const response = await fetch(videoUrl, options)
-    if (response.ok === true) {
+    const response = await fetch(url, options)
+    if (response.ok) {
       const data = await response.json()
       const updatedData = data.videos.map(eachVideo => ({
+        id: eachVideo.id,
+        title: eachVideo.title,
+        thumbnailUrl: eachVideo.thumbnail_url,
+        viewCount: eachVideo.view_count,
+        publishedAt: eachVideo.published_at,
         name: eachVideo.channel.name,
         profileImageUrl: eachVideo.channel.profile_image_url,
-        id: eachVideo.id,
-        publishedAt: eachVideo.published_at,
-        thumbnailUrl: eachVideo.thumbnail_url,
-        title: eachVideo.title,
-        viewCount: eachVideo.view_count,
       }))
       this.setState({
-        videos: updatedData,
+        homeVideos: updatedData,
         apiStatus: apiStatusConstants.success,
       })
     } else {
@@ -70,79 +77,41 @@ class Home extends Component {
     }
   }
 
-  renderFailureView = () => (
-    <NxtWatchContext.Consumer>
-      {value => {
-        const {isDarkThemeEnabled} = value
-        const failureUrl = isDarkThemeEnabled
-          ? 'https://assets.ccbp.in/frontend/react-js/nxt-watch-failure-view-dark-theme-img.png'
-          : 'https://assets.ccbp.in/frontend/react-js/nxt-watch-failure-view-light-theme-img.png'
-        return (
-          <div>
-            <img src={failureUrl} alt="failure view" />
-            <h1>Oops! Something Went Wrong</h1>
-            <p>
-              We are having some trouble to complete your request. Please try
-              again.
-            </p>
-            <button type="button" onClick={this.getVideos}>
-              Retry
-            </button>
-          </div>
-        )
-      }}
-    </NxtWatchContext.Consumer>
-  )
-
-  renderLoadingView = () => (
-    <div className="loader-container" data-testid="loader">
-      <Loader type="ThreeDots" color="#ffffff" height="50" width="50" />
-    </div>
-  )
-
-  renderSuccessView = () => {
-    const {videos} = this.state
-    if (videos.length === 0) {
-      return (
-        <div>
-          <img
-            src="https://assets.ccbp.in/frontend/react-js/nxt-watch-no-search-results-img.png"
-            alt="no videos"
-          />
-          <h1>No Search results found</h1>
-          <p>Try different Key words or remove search filter</p>
-          <button type="button" onClick={this.noDataFoundRetry}>
-            Retry
-          </button>
-        </div>
-      )
-    }
-    return (
-      <ul>
-        {videos.map(eachVideo => (
-          <VideoCard videoDetails={eachVideo} key={eachVideo.id} />
-        ))}
-      </ul>
-    )
-  }
-
-  noDataFoundRetry = () => {
-    this.setState({searchInput: ''}, this.getVideos)
-  }
-
-  searchInputChange = event => {
-    this.setState({searchInput: event.target.value})
-  }
-
-  onBannerClose = () => {
+  onCloseBanner = () => {
     this.setState({isBannerShow: false})
   }
 
-  renderVideos = () => {
+  onChangeInput = event => {
+    this.setState({searchInput: event.target.value})
+  }
+
+  getSearchResults = () => {
+    this.getVideos()
+  }
+
+  onRetry = () => {
+    this.setState({searchInput: ''}, this.getVideos)
+  }
+
+  renderLoadingView = () => (
+    <LoaderContainer data-testid="loader">
+      <Loader type="ThreeDots" color="#0b69ff" height="50" width="50" />
+    </LoaderContainer>
+  )
+
+  renderVideosView = () => {
+    const {homeVideos} = this.state
+    return <HomeVideos homeVideos={homeVideos} onRetry={this.onRetry} />
+  }
+
+  renderFailureView = () => <FailureView onRetry={this.onRetry} />
+
+  renderHomeVideos = () => {
     const {apiStatus} = this.state
+
     switch (apiStatus) {
       case apiStatusConstants.success:
-        return this.renderSuccessView()
+        return this.renderVideosView()
       case apiStatusConstants.failure:
         return this.renderFailureView()
       case apiStatusConstants.inProgress:
@@ -153,46 +122,66 @@ class Home extends Component {
   }
 
   render() {
-    const {isBannerShow} = this.state
+    const {searchInput, bannerDisplay, isBannerShow} = this.state
     return (
-      <NxtWatchContext.Consumer>
+      <ThemeAndVideoContext.Consumer>
         {value => {
-          const {isDarkThemeEnabled} = value
-          const logoUrl = isDarkThemeEnabled
-            ? 'https://assets.ccbp.in/frontend/react-js/nxt-watch-logo-dark-theme-img.png'
-            : 'https://assets.ccbp.in/frontend/react-js/nxt-watch-logo-light-theme-img.png'
+          const {isDarkTheme} = value
+
+          const bgColor = isDarkTheme ? '#181818' : '#f9f9f9'
+          const textColor = isDarkTheme ? '#f9f9f9' : '#231f20'
+          const display = bannerDisplay === 'flex' ? 'flex' : 'none'
+
           return (
-            <HomeContainer
-              data-testid="home"
-              bgColor={isDarkThemeEnabled ? '#181818' : ' #f9f9f9'}
-            >
+            <>
               <Header />
-              <SideNavbar />
-              {isBannerShow && (
-                <BannerContainer data-testid="banner">
-                  <button
+              <NavigationBar />
+              <HomeContainer data-testid="home" bgColor={bgColor}>
+                {isBannerShow && (
+                  <BannerContainer data-testid="banner" display={display}>
+                    <BannerLeftPart>
+                      <BannerImage
+                        src="https://assets.ccbp.in/frontend/react-js/nxt-watch-logo-light-theme-img.png"
+                        alt="nxt watch logo"
+                      />
+                      <BannerText>
+                        Buy Nxt Watch Premium prepaid plans with UPI
+                      </BannerText>
+                      <BannerButton type="button">GET IT NOW</BannerButton>
+                    </BannerLeftPart>
+                    <BannerRightPart>
+                      <BannerCloseButton
+                        data-testid="close"
+                        onClick={this.onCloseBanner}
+                      >
+                        <AiOutlineClose size={25} />
+                      </BannerCloseButton>
+                    </BannerRightPart>
+                  </BannerContainer>
+                )}
+
+                <SearchContainer>
+                  <SearchInput
+                    type="search"
+                    placeholder="Search"
+                    value={searchInput}
+                    onChange={this.onChangeInput}
+                    color={textColor}
+                  />
+                  <SearchIconContainer
                     type="button"
-                    onClick={this.onBannerClose}
-                    data-testid="close"
+                    data-testid="searchButton"
+                    onClick={this.getSearchResults}
                   >
-                    <GrFormClose />
-                  </button>
-                  <LogoImage src={logoUrl} alt="nxt watch logo" />
-                  <Paragraph>
-                    Buy Nxt Watch Premium prepaid plans with UPI
-                  </Paragraph>
-                  <GetStartButton>GET IT NOW</GetStartButton>
-                </BannerContainer>
-              )}
-              <InputElement type="search" onChange={this.searchInputChange} />
-              <SearchButton data-testid="searchButton" onClick={this.getVideos}>
-                <BiSearchAlt2 />
-              </SearchButton>
-              {this.renderVideos()}
-            </HomeContainer>
+                    <AiOutlineSearch size={20} />
+                  </SearchIconContainer>
+                </SearchContainer>
+                {this.renderHomeVideos()}
+              </HomeContainer>
+            </>
           )
         }}
-      </NxtWatchContext.Consumer>
+      </ThemeAndVideoContext.Consumer>
     )
   }
 }

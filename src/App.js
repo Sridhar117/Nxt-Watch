@@ -1,71 +1,83 @@
 import {Component} from 'react'
-import {Switch, Route} from 'react-router-dom'
-import Gaming from './components/Gaming'
-import Home from './components/Home'
-import Login from './components/Login'
-import NotFound from './components/NotFound'
-import Trending from './components/Trending'
-import VideoItemDetails from './components/VideoItemDetails'
-import SavedVideos from './components/SavedVideos'
+import {Route, Switch, Redirect} from 'react-router-dom'
+
 import ProtectedRoute from './components/ProtectedRoute'
-import NxtWatchContext from './context/NxtWatchContext'
+import Login from './components/Login'
+import Home from './components/Home'
+import VideoDetailView from './components/VideoDetailView'
+import TrendingVideos from './components/TrendingVideos'
+import GamingVideos from './components/GamingVideos'
+import SavedVideos from './components/SavedVideos'
+import NotFound from './components/NotFound'
+
+import ThemeAndVideoContext from './context/ThemeAndVideoContext'
+
+import './App.css'
 
 class App extends Component {
-  state = {isDarkThemeEnabled: false, activeTabId: 'Home', savedVideos: []}
+  state = {
+    savedVideos: [],
+    isDarkTheme: false,
+    activeTab: 'Home',
+  }
+
+  changeTab = tab => {
+    this.setState({activeTab: tab})
+  }
 
   toggleTheme = () => {
     this.setState(prevState => ({
-      isDarkThemeEnabled: !prevState.isDarkThemeEnabled,
+      isDarkTheme: !prevState.isDarkTheme,
     }))
   }
 
-  updateActiveTabId = tabId => {
-    this.setState({activeTabId: tabId})
-  }
-
-  addToSavedVideos = newVideoObj => {
+  addVideo = video => {
     const {savedVideos} = this.state
-    const videoIndex = savedVideos.findIndex(
-      eachVideo => eachVideo.id === newVideoObj.id,
-    )
-    if (videoIndex === -1) {
-      this.setState(prevState => ({
-        savedVideos: [...prevState.savedVideos, newVideoObj],
-      }))
+    const index = savedVideos.findIndex(eachVideo => eachVideo.id === video.id)
+    if (index === -1) {
+      this.setState({savedVideos: [...savedVideos, video]})
     } else {
-      this.setState(prevState => ({
-        savedVideos: prevState.savedVideos.splice(videoIndex, 1),
-      }))
+      savedVideos.splice(index, 1)
+      this.setState({savedVideos})
     }
   }
 
+  removeVideo = id => {
+    const {savedVideos} = this.state
+    const updatedSavedVideos = savedVideos.filter(
+      eachVideo => eachVideo.id !== id,
+    )
+    this.setState({savedVideos: updatedSavedVideos})
+  }
+
   render() {
-    const {isDarkThemeEnabled, activeTabId, savedVideos} = this.state
+    const {savedVideos, isDarkTheme, activeTab} = this.state
     return (
-      <NxtWatchContext.Provider
+      <ThemeAndVideoContext.Provider
         value={{
-          isDarkThemeEnabled,
-          toggleTheme: this.toggleTheme,
-          activeTabId,
-          updateActiveTabId: this.updateActiveTabId,
           savedVideos,
-          addToSavedVideos: this.addToSavedVideos,
+          isDarkTheme,
+          activeTab,
+          toggleTheme: this.toggleTheme,
+          addVideo: this.addVideo,
+          changeTab: this.changeTab,
         }}
       >
         <Switch>
-          <ProtectedRoute exact path="/" component={Home} />
           <Route exact path="/login" component={Login} />
-          <ProtectedRoute exact path="/trending" component={Trending} />
-          <ProtectedRoute exact path="/gaming" component={Gaming} />
-          <ProtectedRoute exact path="/saved-videos" component={SavedVideos} />
+          <ProtectedRoute exact path="/" component={Home} />
           <ProtectedRoute
             exact
             path="/videos/:id"
-            component={VideoItemDetails}
+            component={VideoDetailView}
           />
-          <Route component={NotFound} />
+          <ProtectedRoute exact path="/trending" component={TrendingVideos} />
+          <ProtectedRoute exact path="/gaming" component={GamingVideos} />
+          <ProtectedRoute exact path="/saved-videos" component={SavedVideos} />
+          <Route path="/not-found" component={NotFound} />
+          <Redirect to="not-found" />
         </Switch>
-      </NxtWatchContext.Provider>
+      </ThemeAndVideoContext.Provider>
     )
   }
 }

@@ -1,112 +1,134 @@
+import {Component} from 'react'
 import {Redirect} from 'react-router-dom'
 import Cookies from 'js-cookie'
-import {Component} from 'react'
+
 import {
-  LoginContainer,
+  LoginBgContainer,
   FormContainer,
-  WebsiteLogo,
-  Label,
-  InputElement,
+  InputContainer,
+  LoginLogoImage,
+  LabelInput,
+  UserInput,
+  CheckboxContainer,
+  CheckboxInput,
+  ShowPasswordLabel,
   LoginButton,
-  ErrorMessage,
+  SubmitError,
 } from './styledComponents'
 
 class Login extends Component {
   state = {
     username: '',
     password: '',
+    showPassword: false,
+    showSubmitError: false,
     errorMsg: '',
-    showError: false,
-    isShowPassword: false,
   }
 
-  enterUsername = event => {
+  onChangeUsername = event => {
     this.setState({username: event.target.value})
   }
 
-  enterPassword = event => {
+  onChangePassword = event => {
     this.setState({password: event.target.value})
   }
 
-  onFailureLogin = errorMsg => {
-    this.setState({showError: true, errorMsg})
+  onClickShowPassword = () => {
+    this.setState(prevState => ({
+      showPassword: !prevState.showPassword,
+    }))
   }
 
-  onSuccessLogin = jwtToken => {
+  renderUsernameField = () => {
+    const {username} = this.state
+    return (
+      <>
+        <LabelInput htmlFor="username">USERNAME</LabelInput>
+        <UserInput
+          type="text"
+          id="username"
+          value={username}
+          onChange={this.onChangeUsername}
+          placeholder="Username"
+        />
+      </>
+    )
+  }
+
+  renderPasswordField = () => {
+    const {showPassword, password} = this.state
+    const passwordType = showPassword ? 'text' : 'password'
+    return (
+      <>
+        <LabelInput htmlFor="password">PASSWORD</LabelInput>
+        <UserInput
+          type={passwordType}
+          id="password"
+          value={password}
+          onChange={this.onChangePassword}
+          placeholder="Password"
+        />
+        <CheckboxContainer>
+          <CheckboxInput
+            type="checkbox"
+            id="checkbox"
+            onChange={this.onClickShowPassword}
+          />
+          <ShowPasswordLabel htmlFor="checkbox">
+            Show Password
+          </ShowPasswordLabel>
+        </CheckboxContainer>
+      </>
+    )
+  }
+
+  onSubmitSuccess = jwtToken => {
     const {history} = this.props
     Cookies.set('jwt_token', jwtToken, {expires: 30})
     history.replace('/')
   }
 
-  onLogin = async event => {
+  onSubmitError = errorMsg => {
+    this.setState({showSubmitError: true, errorMsg})
+  }
+
+  OnSubmitForm = async event => {
     event.preventDefault()
-    const loginUrl = 'https://apis.ccbp.in/login'
     const {username, password} = this.state
     const userDetails = {username, password}
-
+    const LoginUrl = 'https://apis.ccbp.in/login'
     const options = {
       method: 'POST',
       body: JSON.stringify(userDetails),
     }
-
-    const response = await fetch(loginUrl, options)
+    const response = await fetch(LoginUrl, options)
     const data = await response.json()
     if (response.ok === true) {
-      this.onSuccessLogin(data.jwt_token)
+      this.onSubmitSuccess(data.jwt_token)
     } else {
-      this.onFailureLogin(data.error_msg)
+      this.onSubmitError(data.error_msg)
     }
-  }
-
-  showPassword = () => {
-    this.setState(prevState => ({isShowPassword: !prevState.isShowPassword}))
   }
 
   render() {
-    const {isShowPassword} = this.state
+    const {showSubmitError, errorMsg} = this.state
     const jwtToken = Cookies.get('jwt_token')
-    const {showError, errorMsg} = this.state
     if (jwtToken !== undefined) {
       return <Redirect to="/" />
     }
-
     return (
-      <LoginContainer>
-        <FormContainer onSubmit={this.onLogin}>
-          <WebsiteLogo
+      <LoginBgContainer>
+        <FormContainer onSubmit={this.OnSubmitForm}>
+          <LoginLogoImage
             src="https://assets.ccbp.in/frontend/react-js/nxt-watch-logo-light-theme-img.png"
             alt="website logo"
           />
-          <Label className="label" htmlFor="username">
-            USERNAME
-          </Label>
-          <InputElement
-            onChange={this.enterUsername}
-            type="text"
-            id="username"
-            placeholder="Username"
-          />
-          <Label className="label" htmlFor="password">
-            PASSWORD
-          </Label>
-          <InputElement
-            onChange={this.enterPassword}
-            type={isShowPassword ? 'text' : 'password'}
-            id="password"
-            placeholder="Password"
-          />
-          <input
-            type="checkbox"
-            id="showpassword"
-            onChange={this.showPassword}
-          />
-          <Label htmlFor="showpassword">Show Password</Label>
-          <LoginButton type="submit" className="login-button">
-            Login
-          </LoginButton>
-          {showError && <ErrorMessage>*{errorMsg}</ErrorMessage>}
+          <InputContainer>{this.renderUsernameField()}</InputContainer>
+          <InputContainer>{this.renderPasswordField()}</InputContainer>
+          <LoginButton type="submit">Login</LoginButton>
+          {showSubmitError && <SubmitError>*{errorMsg}</SubmitError>}
         </FormContainer>
-      </LoginContainer>
+      </LoginBgContainer>
     )
   }
 }
